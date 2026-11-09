@@ -1,0 +1,185 @@
+/* PRISMBURST — page shell. The game itself renders into a single canvas. */
+html, body {
+  margin: 0; padding: 0; width: 100%; height: 100%;
+  overflow: hidden; background: #070a1f; color: #e8fdff;
+  touch-action: none; overscroll-behavior: none; -ms-touch-action: none;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%;
+  font-family: "Trebuchet MS", "Segoe UI", Roboto, Arial, sans-serif;
+}
+body { position: fixed; inset: 0; background: radial-gradient(ellipse at 50% 30%, #1d0f45 0%, #070a1f 70%); }
+#game { position: fixed; inset: 0; width: 100%; height: 100%; overflow: hidden; }
+#game canvas { display: block; touch-action: none; outline: none; }
+#loading {
+  position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 18px; font-weight: bold; letter-spacing: 6px; color: #9fe9ff; pointer-events: none;
+}
+.spinner {
+  width: 48px; height: 48px; border-radius: 50%;
+  border: 4px solid rgba(34, 232, 255, 0.2); border-top-color: #ff3df0; animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Account sheet. Matches the neon-crystal menu. Hidden until opened. */
+#pb-account[hidden], #pb-account [hidden] { display: none !important; }
+#pb-account {
+  position: fixed; inset: 0; z-index: 30; overflow: auto; -webkit-overflow-scrolling: touch;
+  touch-action: pan-y; overscroll-behavior: contain;
+  background: rgba(5, 6, 26, 0.82);
+  color: #e8fdff;
+  font-family: "Trebuchet MS", "Segoe UI", Roboto, Arial, sans-serif;
+}
+#pb-account .pb-sheet {
+  box-sizing: border-box; width: min(560px, calc(100% - 24px)); margin: 16px auto 32px;
+  padding: 18px 16px 22px; border-radius: 28px;
+  background: #141a44; border: 3px solid #22e8ff;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+#pb-account h1, #pb-account h2 { margin: 8px 0 10px; text-align: center; letter-spacing: 2px; }
+#pb-account h1 { font-size: 28px; text-shadow: 0 0 12px #22e8ff; }
+#pb-account p { margin: 6px 0; text-align: center; line-height: 1.35; }
+#pb-acct-sync { font-weight: bold; color: #9fe9ff; }
+#pb-name-shown { font-weight: bold; color: #ffe7a3; overflow-wrap: anywhere; }
+#pb-name-shown:empty { display: none; }
+#pb-acct-msg:empty { display: none; }
+#pb-acct-msg { color: #ffd0e8; }
+#pb-account label { display: block; margin: 10px 0; font-size: 14px; color: #c9d4ff; }
+#pb-account input {
+  display: block; width: 100%; box-sizing: border-box; margin-top: 6px;
+  padding: 12px 14px; border-radius: 14px; border: 2px solid #22e8ff;
+  background: #0c1030; color: #ffffff; font-size: 16px;
+  user-select: text; -webkit-user-select: text;
+}
+#pb-account .pb-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; min-height: 48px; margin: 8px 0; padding: 10px 14px;
+  border-radius: 999px; border: 3px solid #22e8ff; background: #12163a;
+  color: #ffffff; font: bold 16px/1.2 "Trebuchet MS", "Segoe UI", Roboto, Arial, sans-serif;
+  letter-spacing: 0.4px;
+}
+#pb-account .pb-btn:disabled { opacity: 0.45; }
+#pb-account .pb-btn.guest { border-color: #ff3df0; }
+#pb-account .pb-btn.google { background: #ffffff; color: #1f1f1f; border-color: #dadce0; }
+#pb-account .pb-btn.facebook { background: #1877f2; border-color: #1877f2; color: #ffffff; }
+#pb-account .pb-btn.email { border-color: #22e8ff; }
+#pb-account .pb-btn.link { border-color: #ffd166; }
+#pb-account .pb-btn.danger { border-color: #ff2e63; }
+#pb-account .pb-btn.quiet { border-color: #6a6f9a; background: transparent; }
+#pb-account .pb-back {
+  border: 0; background: transparent; color: #d7c8ff; font: bold 18px/1 "Trebuchet MS", sans-serif;
+  min-height: 44px; padding: 8px;
+}
+#pb-account .mark {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%; font-weight: 800; font-size: 16px;
+}
+#pb-account .mark.g { width: 22px; height: 22px; background: transparent; box-shadow: none; }
+#pb-account svg.mark { display: block; flex: 0 0 auto; }
+#pb-account .mark.f { color: #fff; background: #1877f2; }
+#pb-account .pb-note, #pb-account .pb-fine { color: #9aa3d6; font-size: 13px; }
+#pb-account .pb-note:empty { display: none; }
+#pb-account a { color: #9fe9ff; }
+/* Login popup: prism glass card, tabs, email form, reset screens. */
+#pb-account { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+#pb-account > .pb-sheet {
+  background: linear-gradient(160deg, rgba(34, 232, 255, 0.10) 0%, rgba(20, 26, 68, 0.96) 28%, rgba(20, 26, 68, 0.98) 70%, rgba(255, 61, 240, 0.12) 100%);
+  border: 2px solid rgba(34, 232, 255, 0.85);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06) inset, 0 0 28px rgba(34, 232, 255, 0.25), 0 14px 40px rgba(0, 0, 0, 0.5);
+}
+#pb-account .pb-top { display: flex; align-items: center; justify-content: space-between; }
+#pb-account .pb-prism { margin-right: 6px; filter: drop-shadow(0 0 6px rgba(34, 232, 255, 0.7)); }
+#pb-account h2 { font-size: 22px; color: #e8fdff; }
+#pb-account .pb-view { margin-top: 6px; }
+#pb-account .pb-lead { color: #c9d4ff; font-size: 14px; margin: 8px 4px 12px; }
+#pb-account .pb-tabs {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 5px; margin: 6px 0 4px;
+  border-radius: 999px; background: rgba(8, 10, 34, 0.85); border: 1px solid rgba(155, 107, 255, 0.55);
+}
+#pb-account .pb-tab {
+  min-height: 44px; border: 0; border-radius: 999px; background: transparent; color: #aab3e6;
+  font: bold 16px/1 "Trebuchet MS", "Segoe UI", Roboto, Arial, sans-serif; letter-spacing: 0.5px;
+}
+#pb-account .pb-tab.is-on {
+  color: #0a0620; background: linear-gradient(135deg, #22e8ff 0%, #9b6bff 55%, #ff3df0 100%);
+  box-shadow: 0 0 14px rgba(34, 232, 255, 0.45);
+}
+#pb-account .pb-btn { position: relative; }
+#pb-account .pb-btn.guest { background: linear-gradient(135deg, rgba(255, 61, 240, 0.22), rgba(18, 22, 58, 0.95)); }
+#pb-account .mark.p { color: #ffd166; font-size: 18px; width: 22px; height: 22px; }
+#pb-account .pb-btn.facebook:disabled { background: #2a3a66; border-color: #3b5a9a; opacity: 0.7; }
+#pb-account .pb-soon {
+  flex: 0 0 auto; margin-left: 2px;
+  padding: 4px 8px; border-radius: 999px; font-size: 11px; letter-spacing: 0.5px;
+  background: #ffd166; color: #1a1200;
+}
+#pb-account .pb-or { display: flex; align-items: center; gap: 10px; margin: 14px 0 4px; color: #8f98cf; font-size: 13px; }
+#pb-account .pb-or::before, #pb-account .pb-or::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(34, 232, 255, 0.6), transparent); }
+#pb-account .pb-pass { position: relative; display: block; }
+#pb-account .pb-pass input { padding-right: 72px; }
+#pb-account .pb-eye {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-35%);
+  min-height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid rgba(34, 232, 255, 0.6);
+  background: rgba(34, 232, 255, 0.12); color: #9fe9ff; font: bold 13px/1 "Trebuchet MS", sans-serif;
+}
+#pb-account .pb-linkbtn {
+  display: block; width: 100%; min-height: 44px; margin: 2px 0; border: 0; background: transparent;
+  color: #9fe9ff; font: bold 15px/1.2 "Trebuchet MS", "Segoe UI", Roboto, Arial, sans-serif; text-decoration: underline;
+}
+#pb-account .pb-linkbtn:disabled { opacity: 0.45; }
+#pb-account .pb-card {
+  margin: 14px 0 6px; padding: 4px 12px 8px; border-radius: 18px;
+  background: rgba(8, 10, 34, 0.6); border: 1px solid rgba(255, 209, 102, 0.35);
+}
+#pb-account input:focus { outline: none; border-color: #ff3df0; box-shadow: 0 0 0 3px rgba(255, 61, 240, 0.25); }
+
+#pb-confirm, #pb-migrate {
+  position: fixed; inset: 0; z-index: 40; overflow: auto;
+  background: rgba(0, 0, 0, 0.55); padding-top: 12vh;
+}
+#pb-confirm[hidden], #pb-migrate[hidden] { display: none !important; }
+#pb-account .pb-modal { border-color: #ffd166; }
+
+/* Demo rewarded ad. Drawn locally. No remote images. */
+#pb-ad {
+  position: fixed; inset: 0; z-index: 80; background: #05060f;
+  display: flex; justify-content: center; touch-action: manipulation;
+  font-family: "Trebuchet MS", "Segoe UI", Roboto, Arial, sans-serif; color: #fff;
+}
+.pb-ad-frame {
+  position: relative; width: min(100vw, 480px); height: 100%; overflow: hidden;
+  background: radial-gradient(circle at 50% 18%, #3a1870 0%, #070814 68%);
+}
+.pb-ad-frame.is-live { animation: pb-ad-hold 4.2s ease-in-out infinite; }
+@keyframes pb-ad-hold {
+  0% { transform: scale(1) translate3d(0, 0, 0); }
+  50% { transform: scale(1.06) translate3d(-1.6%, 1.2%, 0); }
+  100% { transform: scale(1) translate3d(0, 0, 0); }
+}
+.pb-ad-badge, .pb-ad-count {
+  position: absolute; top: 18px; z-index: 3; font-weight: 800; letter-spacing: 0.5px;
+  padding: 6px 12px; border-radius: 10px;
+}
+.pb-ad-badge { left: 16px; background: #ffd166; color: #1a1200; }
+.pb-ad-count { right: 16px; background: rgba(0, 0, 0, 0.55); }
+.pb-ad-avatar { position: absolute; top: 7%; left: 50%; width: 46%; transform: translateX(-50%); }
+.pb-ad-clip {
+  position: absolute; left: 8%; width: 84%; bottom: 28%; height: 34%;
+  border-radius: 18px; background: #0b1028; border: 3px solid rgba(34, 232, 255, 0.8);
+}
+.pb-ad-caption {
+  position: absolute; left: 6%; right: 6%; bottom: 16%; z-index: 3;
+  font-size: 28px; font-weight: 900; line-height: 1.15; text-align: center;
+  text-shadow: 0 2px 0 #000, 0 0 16px #000;
+}
+.pb-ad-word {
+  position: absolute; left: 0; right: 0; bottom: 12%; text-align: center;
+  letter-spacing: 4px; font-weight: 800; color: #9fe9ff; font-size: 14px;
+}
+.pb-ad-close {
+  position: absolute; left: 10%; right: 10%; bottom: 3%; height: 52px; z-index: 3;
+  border-radius: 26px; border: 2px solid #ffd166; background: rgba(8, 10, 30, 0.82);
+  color: #fff; font-weight: 800; font-size: 18px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pb-ad-frame.is-live { animation: none; }
+}
